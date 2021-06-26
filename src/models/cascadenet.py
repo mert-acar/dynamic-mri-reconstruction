@@ -49,7 +49,7 @@ class CascadeNetwork(nn.Module):
         for block in self.blocks:
             train_image = block(train_image)
             train_image = self.dc(train_image, train_k, train_mask)
-        if loss_mask != None
+        if loss_mask != None:
             k_space = map_to_k_space(train_image, loss_mask)
             return train_image, k_space
         return train_image

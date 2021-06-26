@@ -164,7 +164,7 @@ class DRN(nn.Module):
         self.dc = DataConsistencyInKspace()
 
 
-    def forward(self, train_image, train_k, train_mask, loss_mask=None, *args):
+    def forward(self, train_image, train_k, train_mask, loss_mask=None, **args):
         '''
             The input is the undersampled image sequence with shape [N, 2, H, W, T]
             The second dimension holds the real and complex parts of the image 
@@ -207,7 +207,7 @@ class DRN(nn.Module):
 
             train_image[..., t] = temp
         if loss_mask != None:
-            k = map_to_k_space(train_image loss_mask)
+            k = map_to_k_space(train_image, loss_mask)
             return train_image, k
         else:
             return train_image
@@ -299,7 +299,7 @@ class MODRN(nn.Module):
         self.me = UFlowNet(**kwargs['me'])
         self.mc = ResidualNet(**kwargs['mc'])
     
-    def forward(self, train_image, train_k, train_mask, ref, loss_mask=None, *args):
+    def forward(self, train_image, train_k, train_mask, ref, loss_mask=None, **args):
         train_image = self.drn(train_image, train_k, train_mask)
         c = torch.empty(train_image.shape).to(train_image.device)
         l = 0

@@ -7,7 +7,7 @@ from tqdm import tqdm
 from tabulate import tabulate
 from dataset import OCMRDataset
 from shutil import rmtree, copyfile
-from utils import complex_psnr, ssim_score, real2complex, time_trim, srink
+from utils import complex_psnr, ssim_score, real2complex, time_trim, shrink
 
 
 def checkpoint(model, optimizer, path):
