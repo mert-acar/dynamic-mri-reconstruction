@@ -38,17 +38,21 @@ def test(model, dataloader, criterion, model_args, cuda, supervision='full'):
                 inp = batch['train_image'].clone()
                 output = model(**batch)
             elif model_args['model_type'] == 'modrn':
-                batch = time_trim(batch, T)
+                batch = time_trim(batch, model_args['T'])
                 if batch['train_image'].shape[-1] == 0:
                     continue
                 inp = batch['train_image'].clone()
                 idx = list(range(-1, inp.shape[-1], model_args['T']))
                 idx[0] = 0
-                ref = batch['train_image'][..., idx]
+                if supervision == 'self':
+                    ref = batch['train_image'][..., idx]
+                else:
+                    ref = batch['full'][..., idx]
+
                 ref = ref.float()
                 if train_args['cuda']:
                     ref = ref.cuda()
-                output = model(ref, **model_output)
+                output = model(ref=ref, **batch)
 
             if supervision == 'self':
                 loss = criterion(output[1], batch['loss_k'])
@@ -119,17 +123,20 @@ def train_model(model, dataloaders, optimizer, criterion, lr_scheduler, model_ar
                         inp = batch['train_image'].clone()
                         output = model(**batch)
                     elif model_args['model_type'] == 'modrn':
-                        batch = time_trim(batch, T)
+                        batch = time_trim(batch, model_args['T'])
                         if batch['train_image'].shape[-1] == 0:
                             continue
                         inp = batch['train_image'].clone()
                         idx = list(range(-1, inp.shape[-1], model_args['T']))
                         idx[0] = 0
-                        ref = batch['train_image'][..., idx]
+                        if supervision == 'self':
+                            ref = batch['train_image'][..., idx]
+                        else:
+                            ref = batc['full'][..., idx]
                         ref = ref.float()
                         if train_args['cuda']:
                             ref = ref.cuda()
-                        output = model(ref, **model_output)
+                        output = model(ref=ref, **batch)
 
                     if supervision == 'self':
                         loss = criterion(output[1], batch['loss_k'])
