@@ -169,16 +169,16 @@ def train_model(model, dataloaders, optimizer, criterion, lr_scheduler, model_ar
                 if running_error < best_loss:
                     best_loss = running_error
                     best_epoch = epoch
-                    checkpoint(model, optimizer, args['output_path'])
+                    checkpoint(model, optimizer, train_args['output_path'])
             else:
                 last_train_loss = running_error
 
-        if(args['early_stop'] != 0) and ((epoch - best_epoch) >= args['early_stop']):
-            print('No improvements in', args['early_stop'], 'epochs, break...')
+        if(train_args['early_stop'] != 0) and ((epoch - best_epoch) >= train_args['early_stop']):
+            print('No improvements in', train_args['early_stop'], 'epochs, break...')
             break
 
     t = tabulate(loss_table, headers=['Epoch', 'Train Loss', 'Test Loss', 'Base PSNR', 'Test PSNR', 'SSIM'])
-    with open(os.path.join(args['output_path'], 'log_train.txt'), 'w') as f:
+    with open(os.path.join(train_args['output_path'], 'log_train.txt'), 'w') as f:
         f.write(t)
     elapsed = time() - before
     print("Training complete in {:.0f}m {:.0f}s".format(elapsed // 60, elapsed % 60))
