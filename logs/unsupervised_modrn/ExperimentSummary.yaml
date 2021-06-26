@@ -1,0 +1,29 @@
+dataset:    
+  supervision: 'self' # 'full' or 'self'
+  data_path: '../data'
+  csv_path: '../metadata/train-test-images.csv'
+
+  # Undersampling Arguments
+  sample_n: 8
+  acc: 4.0
+  noise_power: 0
+  acs: [8, 8] # keeps a small acs region fully-sampled for training masks if there is no acs region, the small acs block should be set to zero
+  std_scale: 4
+  rho: 0.4
+  batch_size: 1
+
+train:
+  checkpoint_path: null  # If given loads model and optimizer from this path and overrides the following parameters
+  num_epochs: 10000
+  early_stop: 12
+  lr_scheduler_patience: 6
+  lr_scheduler_factor: 0.1
+  lr_scheduler_threshold: 0.00001
+
+  # Adam Optimizer Parameters
+  learning_rate: 0.0001
+  l2: 0.000001
+
+  # Miscellaneous
+  cuda: True
+  output_path: '../logs/unsupervised_modrn'

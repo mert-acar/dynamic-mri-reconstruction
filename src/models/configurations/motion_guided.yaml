@@ -1,0 +1,22 @@
+# Motion Guided Networks Configuration
+T: 8 # Defined period for the reference fram in motion estimation and compensation
+
+# Dynamic Reconstruction Network
+drn:
+  num_iter: 4
+  depth: 3 # UNet depth
+  init_filter: 5 # Initial encoding layer will have 2 ** init_filter number of filters and double at each level
+  hidden_dim: 128 # Hidden freature dimensions for the ConvGRU cells
+  batch_norm: False
+
+# Motion Estimation Network
+me:
+  depth: 5
+  wf: 6 # Initial encoding layer will have 2 ** wf number of filters and double at each level
+  batch_norm: False
+
+# Motion Compensation Network
+mc:
+  depth: 4
+  wf: 6 # Initial encoding layer will have 2 ** wf number of filters and double at each level
+  batch_norm: False
