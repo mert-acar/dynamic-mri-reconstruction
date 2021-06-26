@@ -16,8 +16,9 @@ class Undersampler:
         if self.supervision == 'self':
             if self.fold == 'train':
                 train_mask, loss_mask = self.ss_mask(u_k, mask)
-                u_image, u_k = self.undersample(u_image, train_mask)
+                train_image, u_k = self.undersample(u_image, train_mask)
                 _, ref_k = self.undersample(u_image, loss_mask)
+                u_image = train_image
             else:
                 train_mask = mask
                 loss_mask = np.ones_like(mask)
@@ -166,3 +167,34 @@ class Undersampler:
 
             train_mask[t] = input_mask[t] - loss_mask[t]
         return train_mask.astype(np.float32), loss_mask.astype(np.float32)
+
+
+if __name__ == '__main__':
+    import yaml
+    from scipy.io import loadmat
+    from utils import complex2real
+    from visualize import visualize
+    
+    with open('config.yaml', 'r') as f:
+        args = yaml.load(f, Loader=yaml.FullLoader)['dataset']
+    del args['data_path'] 
+    del args['csv_path'] 
+    del args['supervision'] 
+
+    image = loadmat('../data/images/fs_0030_3T_combined_0.mat')['xn']
+    undersampler = Undersampler(fold='train', supervision='self', undersampling_args=args)
+    data = undersampler(image)
+    data['full'] = complex2real(image)
+    data['train_image'] = (data['train_image'][0] + (1j * data['train_image'][1])).transpose(2, 0, 1)
+    data['full'] = (data['full'][0] + (1j * data['full'][1])).transpose(2, 0, 1)
+
+    images = np.concatenate((data['train_image'], data['full']), axis=-1)
+    visualize(np.abs(images))
+
+    '''
+    data = np.load('masks.npy')
+    mask = undersampler.cartesian_mask(image.shape)
+    u_i, u_k =undersampler.undersample(image, mask)
+
+    cx = int(undersampler.find_center_ind(u_k, axis=(0,1)))
+    '''

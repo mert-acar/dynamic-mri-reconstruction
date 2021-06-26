@@ -24,10 +24,7 @@ def real2complex(x):
     '''
         Converts from array of the form (n, 2, nx, ny, nt) to complex valued (n, nx, ny, nt)
     '''
-    if x.ndim == 5:
-        x = x[:, 0] + (1j * x[:, 1])
-    else:
-        x = x[0] + (1j * x[1])
+    x = x[:, 0] + (1j * x[:, 1])
     return x
 
 
