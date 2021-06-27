@@ -16,9 +16,8 @@ class Undersampler:
         if self.supervision == 'self':
             if self.fold == 'train':
                 train_mask, loss_mask = self.ss_mask(u_k, mask)
-                train_image, u_k = self.undersample(u_image, train_mask)
-                _, ref_k = self.undersample(u_image, loss_mask)
-                u_image = train_image
+                u_image, u_k = self.undersample(data, train_mask)
+                _, ref_k = self.undersample(data, loss_mask)
             else:
                 train_mask = mask
                 loss_mask = np.ones_like(mask)
