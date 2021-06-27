@@ -1,5 +1,5 @@
 dataset:    
-  supervision: 'self' # 'full' or 'self'
+  supervision: 'full' # 'full' or 'self'
   data_path: '../data/images'
   csv_path: '../metadata/train-test-images.csv'
 
@@ -25,5 +25,5 @@ train:
   l2: 0.000001
 
   # Miscellaneous
-  cuda: 0
-  output_path: '../logs/self_modrn_x8'
+  cuda: True
+  output_path: '../logs/drn_x8'

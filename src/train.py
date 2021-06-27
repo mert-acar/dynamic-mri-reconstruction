@@ -16,14 +16,15 @@ def checkpoint(model, optimizer, path):
     torch.save(dict2save, os.path.join(path, 'checkpoint'))
     
 
-def test(model, dataloader, criterion, model_args, cuda, supervision='full'):
+def test(model, dataloader, model_args, cuda, supervision='full'):
     total_loss = 0
     base_psnr = 0
     test_psnr = 0
     ssim = 0
     model.eval()
+    criterion = torch.nn.MSELoss()
     with torch.no_grad():
-        for batch in tqdm(datalaoder, "TESTING", total=len(dataloader)):
+        for batch in tqdm(dataloader, "TESTING", total=len(dataloader)):
             bsize = batch['train_image'].shape[0]
             
             if cuda:
@@ -69,11 +70,11 @@ def test(model, dataloader, criterion, model_args, cuda, supervision='full'):
                 test_psnr += complex_psnr(im_i, pred_i)
                 ssim += ssim_score(im_i, pred_i)
 
-    total_loss = total_loss / len(dataloaders[phase].dataset)
-    base_psnr /= len(dataloaders[phase].dataset)
-    test_psnr /= len(dataloaders[phase].dataset)
-    ssim /= len(dataloaders[phase].dataset)
-    print('Loss:    \t{:.4f} x 1e-3'.format(running_error * 1000))
+    total_loss = total_loss / len(dataloader.dataset)
+    base_psnr /= len(dataloader.dataset)
+    test_psnr /= len(dataloader.dataset)
+    ssim /= len(dataloader.dataset)
+    print('Loss:    \t{:.4f} x 1e-3'.format(total_loss * 1000))
     print('Base PSNR:\t{:.4f}'.format(base_psnr))
     print('Test PSNR:\t{:.4f}'.format(test_psnr))
     print('SSIM:      \t{:.4f}'.format(ssim))
@@ -238,7 +239,7 @@ def train(train_args, data_args, model_args):
 
     check = torch.load(os.path.join(train_args['output_path'], 'checkpoint'))['model']
     model.load_state_dict(check)
-    scores = test(model, dataloaders['test'], criterion, model_args, train_args['cuda'], data_args['supervision'])
+    scores = test(model, dataloaders['test'], model_args, train_args['cuda'], data_args['supervision'])
 
     t = [list(item) for item in scores.items()]
     t = tabulate(t, headers=['','Score'])
