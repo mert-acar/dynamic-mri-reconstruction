@@ -133,7 +133,7 @@ def train_model(model, dataloaders, optimizer, criterion, lr_scheduler, model_ar
                         if supervision == 'self':
                             ref = batch['train_image'][..., idx]
                         else:
-                            ref = batc['full'][..., idx]
+                            ref = batch['full'][..., idx]
                         ref = ref.float()
                         if train_args['cuda']:
                             ref = ref.cuda()

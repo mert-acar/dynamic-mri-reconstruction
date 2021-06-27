@@ -26,4 +26,4 @@ train:
 
   # Miscellaneous
   cuda: True
-  output_path: '../logs/drn_x8'
+  output_path: '../logs/modrn_x8'
