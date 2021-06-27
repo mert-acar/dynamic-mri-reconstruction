@@ -1,11 +1,11 @@
 dataset:    
-  supervision: 'self' # 'full' or 'self'
-  data_path: '../data'
+  supervision: 'full' # 'full' or 'self'
+  data_path: '../data/images'
   csv_path: '../metadata/train-test-images.csv'
 
   # Undersampling Arguments
   sample_n: 8
-  acc: 4.0
+  acc: 8.0
   noise_power: 0
   acs: [8, 8] # keeps a small acs region fully-sampled for training masks if there is no acs region, the small acs block should be set to zero
   std_scale: 4
@@ -25,5 +25,5 @@ train:
   l2: 0.000001
 
   # Miscellaneous
-  cuda: True
-  output_path: '../logs/unsupervised_modrn'
+  cuda: 0
+  output_path: '../logs/modrn_x8'

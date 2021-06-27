@@ -31,9 +31,10 @@ def test(model, dataloader, model_args, cuda, supervision='full'):
                 for key in batch:
                     batch[key] = batch[key].cuda()
             
-            if model_args['model_type'] == 'cascade':
+            if model_args['model_type'] == 'cascadenet':
                 batch = shrink(batch)
                 inp = batch['train_image'].clone()
+                print(batch['train_image'].shape)
                 output = model(**batch)
             elif model_args['model_type'] == 'drn':
                 inp = batch['train_image'].clone()
@@ -116,7 +117,7 @@ def train_model(model, dataloaders, optimizer, criterion, lr_scheduler, model_ar
                             batch[key] = batch[key].cuda()
 
                     # Trim the time series to an integer multiple of the motion period
-                    if model_args['model_type'] == 'cascade':
+                    if model_args['model_type'] == 'cascadenet':
                         batch = shrink(batch)
                         inp = batch['train_image'].clone()
                         output = model(**batch)
