@@ -34,7 +34,9 @@ def test(model, dataloader, model_args, cuda, supervision='full'):
             if model_args['model_type'] == 'cascadenet':
                 batch = shrink(batch)
                 inp = batch['train_image'].clone()
-                print(batch['train_image'].shape)
+                output = model(**batch)
+            elif model_args['model_type'] == 'crnn':
+                inp = batch['train_image'].clone()
                 output = model(**batch)
             elif model_args['model_type'] == 'drn':
                 inp = batch['train_image'].clone()
@@ -119,6 +121,9 @@ def train_model(model, dataloaders, optimizer, criterion, lr_scheduler, model_ar
                     # Trim the time series to an integer multiple of the motion period
                     if model_args['model_type'] == 'cascadenet':
                         batch = shrink(batch)
+                        inp = batch['train_image'].clone()
+                        output = model(**batch)
+                    elif model_args['model_type'] == 'crnn':
                         inp = batch['train_image'].clone()
                         output = model(**batch)
                     elif model_args['model_type'] == 'drn':
@@ -213,6 +218,8 @@ def train(train_args, data_args, model_args):
 
     if model_type == 'cascadenet':
         model = models.CascadeNetwork(**model_args)
+    elif model_type == 'crnn':
+        model = models.CRNN(**model_args)
     elif model_type == 'drn':
         model = models.DRN(**model_args['drn'])
     else:

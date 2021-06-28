@@ -1,0 +1,5 @@
+network:
+  num_filters: 64
+  num_iterations: 10
+  num_layers: 5
+  kernel_size: 3
