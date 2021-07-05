@@ -5,7 +5,7 @@ dataset:
 
   # Undersampling Arguments
   sample_n: 8
-  acc: 8.0
+  acc: 4.0
   noise_power: 0
   acs: [8, 8] # keeps a small acs region fully-sampled for training masks if there is no acs region, the small acs block should be set to zero
   std_scale: 4

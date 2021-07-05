@@ -1,2 +1,3 @@
-from .motion_guided import DRN, MODRN
-from .cascadenet import CascadeNetwork
+from cascadenet import CascadeNetwork
+from crnn import CRNN
+from motion_guided import DRN, MODRN

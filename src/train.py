@@ -4,6 +4,7 @@ import torch
 import models
 from time import time
 from tqdm import tqdm
+from scipy.io import savemat
 from tabulate import tabulate
 from dataset import OCMRDataset
 from shutil import rmtree, copyfile
@@ -16,71 +17,64 @@ def checkpoint(model, optimizer, path):
     torch.save(dict2save, os.path.join(path, 'checkpoint'))
     
 
-def test(model, dataloader, model_args, cuda, supervision='full'):
+def test(model, dataloader, model_args, cuda, output_path, supervision='full'):
     total_loss = 0
     base_psnr = 0
     test_psnr = 0
     ssim = 0
     model.eval()
     criterion = torch.nn.MSELoss()
+    results = {}
+    count = 0
     with torch.no_grad():
         for batch in tqdm(dataloader, "TESTING", total=len(dataloader)):
             bsize = batch['train_image'].shape[0]
-            
-            if cuda:
-                for key in batch:
-                    batch[key] = batch[key].cuda()
-            
-            if model_args['model_type'] == 'cascadenet':
-                batch = shrink(batch)
-                inp = batch['train_image'].clone()
-                output = model(**batch)
-            elif model_args['model_type'] == 'crnn':
-                inp = batch['train_image'].clone()
-                output = model(**batch)
-            elif model_args['model_type'] == 'drn':
-                inp = batch['train_image'].clone()
-                output = model(**batch)
-            elif model_args['model_type'] == 'modrn':
-                batch = time_trim(batch, model_args['T'])
-                if batch['train_image'].shape[-1] == 0:
-                    continue
-                inp = batch['train_image'].clone()
-                idx = list(range(-1, inp.shape[-1], model_args['T']))
-                idx[0] = 0
+
+            inp = batch['train_image'].cpu().clone()
+            if model_args['model_type'] == 'modrn':
                 if supervision == 'self':
                     ref = batch['train_image'][..., idx]
                 else:
                     ref = batch['full'][..., idx]
+                batch['ref'] = ref
 
-                ref = ref.float()
-                if train_args['cuda']:
-                    ref = ref.cuda()
-                output = model(ref=ref, **batch)
+            if cuda:
+                for key in batch:
+                    if key != 'full':
+                        batch[key] = batch[key].cuda()
+
+            output = model(**batch)
 
             if supervision == 'self':
                 loss = criterion(output[1], batch['loss_k'])
-                output = output[0]
+                output = output[0].cpu()
             else:
+                output = output.cpu()
                 loss = criterion(output, batch['full'])
 
             total_loss += loss.item() * bsize
 
-            for im_i, und_i, pred_i in zip(real2complex(batch['full'].cpu().detach().numpy()),
-                                           real2complex(inp.cpu().detach().numpy()), 
-                                           real2complex(output.cpu().detach().numpy())):
-                base_psnr += complex_psnr(im_i, und_i)
-                test_psnr += complex_psnr(im_i, pred_i)
-                ssim += ssim_score(im_i, pred_i)
+            for im_i, und_i, pred_i in zip(real2complex(batch['full'].detach().numpy()),
+                                           real2complex(inp.detach().numpy()), 
+                                           real2complex(output.detach().numpy())):
+                tb_psnr = complex_psnr(im_i, und_i)
+                tt_psnr = complex_psnr(im_i, pred_i)
+                t_ssim = ssim_score(im_i, pred_i)
+                base_psnr += tb_psnr
+                test_psnr += tt_psnr
+                ssim += t_ssim
+
+            results[count] = [tb_psnr, tt_psnr, t_ssim]
+            count += 1
 
     total_loss = total_loss / len(dataloader.dataset)
     base_psnr /= len(dataloader.dataset)
     test_psnr /= len(dataloader.dataset)
     ssim /= len(dataloader.dataset)
-    print('Loss:    \t{:.4f} x 1e-3'.format(total_loss * 1000))
+    print('MSE:      \t{:.4f} x 1e-3'.format(total_loss * 1000))
     print('Base PSNR:\t{:.4f}'.format(base_psnr))
     print('Test PSNR:\t{:.4f}'.format(test_psnr))
-    print('SSIM:      \t{:.4f}'.format(ssim))
+    print('SSIM:     \t{:.4f}'.format(ssim))
 
     scores = {
         'Testing Loss': total_loss,
@@ -88,7 +82,7 @@ def test(model, dataloader, model_args, cuda, supervision='full'):
         'Test PSNR': test_psnr,
         'SSIM': ssim
     }
-    return scores
+    return scores, results
 
 
 def train_model(model, dataloaders, optimizer, criterion, lr_scheduler, model_args, train_args, supervision='full'):
@@ -112,55 +106,43 @@ def train_model(model, dataloaders, optimizer, criterion, lr_scheduler, model_ar
             with torch.set_grad_enabled(phase == 'train'):
                 for batch in tqdm(dataloaders[phase], phase + 'ing...', total=(len(dataloaders[phase]))):
                     bsize = batch['train_image'].shape[0]
-                    optimizer.zero_grad()
+                    inp = batch['train_image'].cpu().clone()
 
-                    if train_args['cuda']:
-                        for key in batch:
-                            batch[key] = batch[key].cuda()
-
-                    # Trim the time series to an integer multiple of the motion period
-                    if model_args['model_type'] == 'cascadenet':
-                        batch = shrink(batch)
-                        inp = batch['train_image'].clone()
-                        output = model(**batch)
-                    elif model_args['model_type'] == 'crnn':
-                        inp = batch['train_image'].clone()
-                        output = model(**batch)
-                    elif model_args['model_type'] == 'drn':
-                        inp = batch['train_image'].clone()
-                        output = model(**batch)
-                    elif model_args['model_type'] == 'modrn':
-                        batch = time_trim(batch, model_args['T'])
-                        if batch['train_image'].shape[-1] == 0:
-                            continue
-                        inp = batch['train_image'].clone()
-                        idx = list(range(-1, inp.shape[-1], model_args['T']))
-                        idx[0] = 0
+                    if model_args['model_type'] == 'modrn':
                         if supervision == 'self':
                             ref = batch['train_image'][..., idx]
                         else:
                             ref = batch['full'][..., idx]
-                        ref = ref.float()
-                        if train_args['cuda']:
-                            ref = ref.cuda()
-                        output = model(ref=ref, **batch)
+                        batch['ref'] = ref
+
+                    if cuda:
+                        for key in batch:
+                            if key != 'full':
+                                batch[key] = batch[key].cuda()
+
+                    optimizer.zero_grad()
+                    output = model(**batch)
 
                     if supervision == 'self':
                         loss = criterion(output[1], batch['loss_k'])
-                        output = output[0]
+                        output = output[0].cpu()
                     else:
+                        output = output.cpu()
                         loss = criterion(output, batch['full'])
 
                     if phase == 'train':
                         loss.backward()
                         optimizer.step()
                     else:
-                        for im_i, und_i, pred_i in zip(real2complex(batch['full'].cpu().detach().numpy()),
-                                                       real2complex(inp.cpu().detach().numpy()), 
-                                                       real2complex(output.cpu().detach().numpy())):
-                            base_psnr += complex_psnr(im_i, und_i)
-                            test_psnr += complex_psnr(im_i, pred_i)
-                            ssim += ssim_score(im_i, pred_i)
+                        for im_i, und_i, pred_i in zip(real2complex(batch['full'].detach().numpy()),
+                                                       real2complex(inp.detach().numpy()), 
+                                                       real2complex(output.detach().numpy())):
+                            tb_psnr = complex_psnr(im_i, und_i)
+                            tt_psnr = complex_psnr(im_i, pred_i)
+                            t_ssim = ssim_score(im_i, pred_i)
+                            base_psnr += tb_psnr
+                            test_psnr += tt_psnr
+                            ssim += t_ssim
                     running_error += loss.item() * bsize
             running_error = running_error / len(dataloaders[phase].dataset)
             print('Loss:    \t{:.4f} x 1e-3'.format(running_error * 1000))
@@ -247,12 +229,15 @@ def train(train_args, data_args, model_args):
 
     check = torch.load(os.path.join(train_args['output_path'], 'checkpoint'))['model']
     model.load_state_dict(check)
-    scores = test(model, dataloaders['test'], model_args, train_args['cuda'], data_args['supervision'])
+    scores, results = test(model, dataloaders['test'], model_args, train_args['cuda'], train_args['output_path'], data_args['supervision'])
 
     t = [list(item) for item in scores.items()]
     t = tabulate(t, headers=['','Score'])
     with open(os.path.join(train_args['output_path'], 'scores.txt'), 'w') as f:
         f.write(t)
+    with open(os.path.join(train_args['output_path'], 'results.txt'), 'w') as f:
+        for key in results:
+            f.write(str(key) + ': ' + str(results[key][0]) + ',\t' + str(results[key][1]) + ',\t' + str(results[key][2]) + '\n')
 
 
 if __name__ == '__main__':
@@ -260,7 +245,7 @@ if __name__ == '__main__':
 
     parser = ArgumentParser()
     parser.add_argument('-m', '--model_type', type=str, default='drn', required=False)
-    parser.add_argument('-c', '--config_path', type=str, default='models/configurations/motion_guided.yaml', required=False)
+    parser.add_argument('-c', '--config_path', type=str, default='../metadata/configurations/motion_guided.yaml', required=False)
     model_config = parser.parse_args()
     
     model_type = model_config.model_type
@@ -289,4 +274,5 @@ if __name__ == '__main__':
     os.mkdir(train_args['output_path'])
     copyfile('config.yaml', os.path.join(train_args['output_path'], 'ExperimentSummary.yaml')) 
     copyfile(model_config.config_path, os.path.join(train_args['output_path'], 'ModelConfig.yaml')) 
+
     train(train_args, data_args, model_args)

@@ -39,7 +39,7 @@ def complex_psnr(x, y, peak='max'):
     if peak == 'max':
         return 10*np.log10(np.max(np.abs(x))**2/(mse + 1e-8))
     else:
-        return 10*np.log10(1./(mse + 1e-7))
+        return 10*np.log10(1./(mse + 1e-8))
 
 
 def ssim_score(x, y):

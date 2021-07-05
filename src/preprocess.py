@@ -51,8 +51,8 @@ def preprocess(data_path, out_path, csm_path=None, ref_size=None):
             output = np.empty(output_shape, dtype=im_coils.dtype)
             for t in range(num_time_steps):
                 frame = im_slice[..., t].transpose(2, 0, 1)
-                
-                # frame = (frame * np.conj(csm_est)).sum(0)
+                frame = (frame * np.conj(csm_est)).sum(0)
+
                 # Resize the frame if a reference size is provided
                 if ref_size != None:
                     temp_frame = np.empty((num_coils, ref_size[0], ref_size[1]), dtype=frame.dtype)
@@ -64,15 +64,15 @@ def preprocess(data_path, out_path, csm_path=None, ref_size=None):
             # Normalize the k-space values in range [0, 1]
             k_space = fft2c(output)
             k_space = k_space / np.max(np.abs(k_space)[:])
-            savemat(os.path.join(out_path, fname[0] + '_k_' + str(i) + '.mat'), {'xn': k_space})
-            # savemat(os.path.join(out_path, fname[0] + '_combined_' + str(i) + '.mat'), {'xn': output})
+            output = ifft2c(k_space)
+            savemat(os.path.join(out_path, fname[0] + '_combined_' + str(i) + '.mat'), {'xn': output})
 
 
 if __name__ == "__main__":
     from visualize import visualize
 
-    data_path = '../../ocmr/data/fullysampled'
-    out_path = '../../ocmr/data/k_space'
+    data_path = '../data/fullysampled'
+    out_path = '../data/images'
     csm_path = None # '../../ocmr/data/csm'
     ref_size = (144, 144)
 

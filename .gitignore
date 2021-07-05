@@ -9,3 +9,4 @@ venv/
 data/
 *checkpoint*
 src/config.yaml
+metadata/figures/

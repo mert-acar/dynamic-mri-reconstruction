@@ -105,7 +105,7 @@ class CRNN(nn.Module):
     ------------------------------
     output: 5d tensor, [output_image] with shape (batch_size, 2, width, height, n_seq)
     """
-    def __init__(self, num_filters=64, kernel_size=3, num_iterations=5, num_layers=5):
+    def __init__(self, num_filters=64, kernel_size=3, num_iterations=5, num_layers=5, **kwargs):
         """
         :param n_ch: number of channels
         :param nf: number of filters
@@ -113,7 +113,7 @@ class CRNN(nn.Module):
         :param nc: number of iterations
         :param nd: number of CRNN/BCRNN/CNN layers in each iteration
         """
-        super(CRNN_MRI, self).__init__()
+        super(CRNN, self).__init__()
         self.nc = num_iterations
         self.nd = num_layers
         self.nf = num_filters
@@ -157,7 +157,7 @@ class CRNN(nn.Module):
             train_image = train_image.permute(4,0,1,2,3)
             train_image = train_image.contiguous()
             net['t%d_x0' % (i - 1)] = net['t%d_x0' % (i - 1)].view(n_seq, n_batch,self.nf,width, height)
-            net['t%d_x0'%i] = self.bcrnn(x, net['t%d_x0'%(i-1)], test)
+            net['t%d_x0'%i] = self.bcrnn(train_image, net['t%d_x0'%(i-1)], test)
             net['t%d_x0'%i] = net['t%d_x0'%i].view(-1,self.nf,width, height)
 
             net['t%d_x1'%i] = self.conv1_x(net['t%d_x0'%i])
@@ -174,24 +174,16 @@ class CRNN(nn.Module):
 
             net['t%d_x4'%i] = self.conv4_x(net['t%d_x3'%i])
 
-            train_image = train_image.view(-1,n_ch,width, height)
+            train_image = train_image.view(-1, n_ch, width, height)
             net['t%d_out'%i] = train_image + net['t%d_x4'%i]
 
             net['t%d_out'%i] = net['t%d_out'%i].view(-1,n_batch, n_ch, width, height)
-            net['t%d_out'%i] = net['t%d_out'%i].permute(1,2,3,4,0)
+            net['t%d_out'%i] = net['t%d_out'%i].permute(1,2,0,3,4)
             net['t%d_out'%i].contiguous()
             net['t%d_out'%i] = self.dcs[i-1](net['t%d_out'%i], train_k, train_mask)
-            train_image = net['t%d_out'%i]
+            train_image = net['t%d_out'%i].permute(0, 1, 3, 4, 2)
 
-            # clean up i-1
-            if test:
-                to_delete = [ key for key in net if ('t%d'%(i-1)) in key ]
-
-                for elt in to_delete:
-                    del net[elt]
-
-                torch.cuda.empty_cache()
-
+        net['t%d_out'%i] = net['t%d_out'%i].permute(0,1,3,4,2)
         if loss_mask != None:
             k = map_to_k_space(net['t%d_out'%i], loss_mask)
             return net['t%d_out'%i], k

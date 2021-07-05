@@ -3,7 +3,7 @@ from torch import nn
 from math import ceil
 import torch.fft as fft
 import torch.nn.functional as F
-from .data_consistency import DataConsistencyInKspace
+from data_consistency import DataConsistencyInKspace
 
 
 class UNetConvBlock(nn.Module):
