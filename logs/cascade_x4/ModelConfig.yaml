@@ -1,8 +1,0 @@
-# Cascade Network Configuration
-num_cascades: 6
-num_layers: 5 # Number of layers in the CNN per cascade
-num_filters: 64
-kernel_size: 3
-stride: 1
-padding: 1 # A padding of 1 is needed to keep the image in the same size
-noise: null # Noise in the measurements. To be used in the data consistency step

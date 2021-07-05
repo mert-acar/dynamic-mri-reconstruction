@@ -1,6 +1,0 @@
-                     Score
-------------  ------------
-Testing Loss   8.28387e-05
-Base PSNR     21.7804
-Test PSNR     22.4469
-SSIM           0.690321
